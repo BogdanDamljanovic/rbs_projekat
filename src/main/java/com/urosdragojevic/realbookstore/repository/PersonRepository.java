@@ -34,6 +34,7 @@ public class PersonRepository {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            LOG.warn("Failed to list all persons.");
         }
         return personList;
     }
@@ -48,7 +49,11 @@ public class PersonRepository {
             while (rs.next()) {
                 personList.add(createPersonFromResultSet(rs));
             }
+        } catch (SQLException e){
+            e.printStackTrace();
+            LOG.warn("Failed to search for person: '" + searchTerm + "'.");
         }
+        auditLogger.audit("Search performed for term: " + searchTerm);
         return personList;
     }
 
@@ -62,6 +67,7 @@ public class PersonRepository {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            LOG.warn("Failed to get person with ID : " + personId);
         }
 
         return null;
@@ -75,7 +81,9 @@ public class PersonRepository {
             statement.executeUpdate(query);
         } catch (SQLException e) {
             e.printStackTrace();
+            LOG.error("Failed to delete person with ID: " + personId);
         }
+        auditLogger.audit("Person with ID: " + personId + " successfully deleted.");
     }
 
     private Person createPersonFromResultSet(ResultSet rs) throws SQLException {
@@ -94,12 +102,18 @@ public class PersonRepository {
              PreparedStatement statement = connection.prepareStatement(query);
         ) {
             String firstName = personUpdate.getFirstName() != null ? personUpdate.getFirstName() : personFromDb.getFirstName();
+            auditLogger.audit("First name changed from : " + personFromDb.getFirstName() + " to " + personUpdate.getFirstName());
+
             String email = personUpdate.getEmail() != null ? personUpdate.getEmail() : personFromDb.getEmail();
+            auditLogger.audit("email changed from : " + personFromDb.getEmail() + " to " + personUpdate.getEmail());
+
             statement.setString(1, firstName);
             statement.setString(2, email);
             statement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
+            LOG.warn("Failed to update person. More info : " + personUpdate.toString());
         }
+        auditLogger.audit("Person info successfully updated. " + personUpdate.toString());
     }
 }
